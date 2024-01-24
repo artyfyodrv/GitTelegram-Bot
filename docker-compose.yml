@@ -1,0 +1,55 @@
+version: '3'
+
+services:
+    nginx-gitbot:
+        container_name: nginx-gitbot
+        image: nginx:1.24.0
+        restart: "no"
+        ports:
+            - "8081:80"
+        volumes:
+            - .:/var/www/
+            # конфигурация nginx
+            - ./.docker/config/nginx/:/etc/nginx/conf.d/
+            # логи
+            - ./.docker/logs/nginx:/var/log/nginx/
+        networks:
+            - web-network-gitbot
+
+    php-gitbot:
+        build:
+            context: ./.docker/
+        container_name: php-gitbot
+        restart: "no"
+        tty: true
+        working_dir: /var/www
+        volumes:
+            - .:/var/www/
+        networks:
+            - web-network-gitbot
+
+    mysql-gitbot:
+        container_name: mysql-gitbot
+        image: mariadb:11.1.2
+        restart: "no"
+        ports:
+            - "${DB_PORT}:3306"
+        volumes:
+            - ./.docker/logs/mysql/:/var/logs/mysql
+            - db-mysql:/var/lib/mysql
+        security_opt:
+            - seccomp:unconfined
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+        networks:
+            - web-network-gitbot
+
+volumes:
+    db-mysql:
+
+networks:
+    web-network-gitbot:
+        driver: bridge
