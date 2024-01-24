@@ -4,25 +4,27 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Repository;
+use App\Models\Webhook;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 
 class GithubService
 {
-    private Http $http;
+    protected Http $http;
     private string $token;
     private string $version = '2022-11-28';
     private string $redirectUrl;
-    private const API_URL = 'https://api.github.com';
+    protected const API_URL = 'https://api.github.com';
 
-    public function __construct(Http $http, string $token, string $redirectUrl)
+    public function __construct(Http $http)
     {
         $this->http = $http;
-        $this->token = $token;
-        $this->redirectUrl = $redirectUrl;
+        $this->token = env('GITHUB_TOKEN');
+        $this->redirectUrl = env('GITHUB_REDIRECT_URL');
     }
 
-    private function setHeaders(): array
+    protected function setHeaders(): array
     {
         return [
             'Accept' => 'application/vnd.github+json',
@@ -31,17 +33,9 @@ class GithubService
         ];
     }
 
-    private function getUser(): array
+    protected function getUser(): array
     {
         return $this->http::withHeaders($this->setHeaders())->get(self::API_URL . '/user')->json();
-    }
-
-    public function getRepository(string $repository): array
-    {
-        $user = $this->getUser();
-        return $this->http::withHeaders($this->setHeaders())
-            ->get(self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks')
-            ->json();
     }
 
     public function setWebhook(string $repository, array $hooks): array
@@ -81,6 +75,15 @@ class GithubService
             ];
         }
 
+        $repoQuery = Repository::query()->where('name', $repository)->first();
+
+
+        Webhook::query()->create([
+            'name' => 'push',
+            'hook_id' => $response->json()['id'],
+            'repository_id' => $repoQuery->id,
+        ]);
+
         return [
             'message' => 'Webhook successfully registered',
             'repository' => $repository,
@@ -94,6 +97,7 @@ class GithubService
         $user = $this->getUser();
         $response = $this->http::withHeaders($this->setHeaders())
             ->get(self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks');
+
 
         if ($response->status() === 404) {
             return [
