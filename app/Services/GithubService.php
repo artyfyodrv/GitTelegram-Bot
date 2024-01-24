@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use PhpParser\Node\Expr\Array_;
-use Psy\Util\Json;
 use Symfony\Component\HttpFoundation\Response;
 
 class GithubService
@@ -46,7 +44,7 @@ class GithubService
             ->json();
     }
 
-    public function setWebhook(string $repository, array $hooks)
+    public function setWebhook(string $repository, array $hooks): array
     {
         $user = $this->getUser();
 
@@ -91,7 +89,7 @@ class GithubService
         ];
     }
 
-    public function getRepositoryHooks(string $repository)
+    public function getRepositoryHooks(string $repository): array
     {
         $user = $this->getUser();
         $response = $this->http::withHeaders($this->setHeaders())
