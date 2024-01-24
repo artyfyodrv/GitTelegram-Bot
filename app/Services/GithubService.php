@@ -38,13 +38,20 @@ class GithubService
         return $this->http::withHeaders($this->setHeaders())->get(self::API_URL . '/user')->json();
     }
 
+    public function getRepository(string $repository): array
+    {
+        $user = $this->getUser();
+        return $this->http::withHeaders($this->setHeaders())
+            ->get(self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks')
+            ->json();
+    }
+
     public function setWebhook(string $repository, array $hooks)
     {
-//        dd($repository, $hooks);
         $user = $this->getUser();
 
         $response = Http::withHeaders($this->setHeaders())
-            ->post((self::API_URL . '/repos/' . $user['login'] . '/' .$repository . '/hooks'), [
+            ->post((self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks'), [
                 'name' => 'web',
                 'active' => true,
                 'events' => $hooks,
@@ -81,6 +88,33 @@ class GithubService
             'repository' => $repository,
             'hooks' => $hooks,
             'code' => Response::HTTP_CREATED
+        ];
+    }
+
+    public function getRepositoryHooks(string $repository)
+    {
+        $user = $this->getUser();
+        $response = $this->http::withHeaders($this->setHeaders())
+            ->get(self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks');
+
+        if ($response->status() === 404) {
+            return [
+                'message' => 'Github repository is not found',
+                'code' => Response::HTTP_NOT_FOUND
+            ];
+        }
+
+        if (empty($response->json())) {
+            return [
+                'message' => 'Hooks not found',
+                'code' => Response::HTTP_OK
+            ];
+        }
+
+        return [
+            'repository' => $repository,
+            'hooks' => $response[0]['events'],
+            'code' => Response::HTTP_OK
         ];
     }
 }

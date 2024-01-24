@@ -14,5 +14,7 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-
-Route::post('v1/webhooks/set', [WebhookController::class, 'setWebhook'])->name('git.hook.set');
+Route::prefix('v1')->group(function () {
+    Route::post('/webhooks/set', [WebhookController::class, 'create'])->name('git.hook.set');
+    Route::get('/repositories/get', [WebhookController::class, 'show'])->name('git.repos.get');
+});
