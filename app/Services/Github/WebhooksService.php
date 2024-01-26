@@ -27,7 +27,7 @@ class WebhooksService extends GithubService
                 ],
             ]);
 
-        if ($response->status() === 404) {
+        if ($response->status() === Response::HTTP_NOT_FOUND) {
             return [
                 'message' => 'Github repository is not found',
                 'code' => Response::HTTP_NOT_FOUND
@@ -62,7 +62,7 @@ class WebhooksService extends GithubService
         $response = $this->http::withHeaders($this->setHeaders())
             ->get(self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks');
 
-        if ($response->status() === 404) {
+        if ($response->status() === Response::HTTP_NOT_FOUND) {
             return [
                 'message' => 'Github repository is not found',
                 'code' => Response::HTTP_NOT_FOUND
@@ -89,7 +89,7 @@ class WebhooksService extends GithubService
         $response = $this->http::withHeaders($this->setHeaders())
             ->delete(self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks/' . $hookId);
 
-        if ($response->status() === 404) {
+        if ($response->status() === Response::HTTP_NOT_FOUND) {
             return [
                 'message' => 'Hook in repository not found',
                 'repository' => $repository,
