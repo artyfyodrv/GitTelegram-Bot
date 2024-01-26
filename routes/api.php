@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\Github\WebhookController;
-use App\Http\Controllers\RepositoryController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,8 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 Route::prefix('v1')->group(function () {
     Route::post('/webhooks/set', [WebhookController::class, 'create'])->name('git.hook.set');
-    Route::get('/webhooks/get', [WebhookController::class, 'show'])->name('git.repos.get');
-    Route::delete('webhooks/delete', [WebhookController::class, 'delete'])->name('git.hook.delete');
-    Route::post('/repositories/add', [RepositoryController::class, 'create'])->name('git.repos.add');
+    Route::get('/webhooks/get/', [WebhookController::class, 'show'])->name('git.hook.get');
+    Route::delete('/webhooks/delete/{id}', [WebhookController::class, 'delete'])->name('git.hook.delete');
 });
 

@@ -5,23 +5,30 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Github;
 
 use App\Http\Controllers\Controller;
-use App\Services\GithubService;
+use App\Services\Github\WebhooksService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class WebhookController extends Controller
 {
-    public function create(Request $request, GithubService $githubService): JsonResponse
+    public function create(Request $request, WebhooksService $webhooksService): JsonResponse
     {
-        $githubService = $githubService->setWebhook($request->get('repository'), $request->get('hooks', []));
+        $webhooksService = $webhooksService->set($request->get('repository'), $request->get('hooks', []));
 
-        return response()->json($githubService);
+        return response()->json($webhooksService, $webhooksService['code']);
     }
 
-    public function show(Request $request, GithubService $githubService): JsonResponse
+    public function show(Request $request, WebhooksService $webhooksService): JsonResponse
     {
-        $githubService = $githubService->getRepositoryHooks($request->get('repository'));
+        $webhooksService = $webhooksService->get($request->get('repository'));
 
-        return response()->json($githubService);
+        return response()->json($webhooksService, $webhooksService['code']);
+    }
+
+    public function delete(int $id, Request $request, WebhooksService $webhooksService): JsonResponse
+    {
+        $webhooksService = $webhooksService->delete($id, $request->get('repository'));
+
+        return response()->json($webhooksService, $webhooksService['code']);
     }
 }

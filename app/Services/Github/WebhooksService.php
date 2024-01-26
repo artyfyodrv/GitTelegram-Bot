@@ -2,46 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Services\Github;
 
-use App\Models\Repository;
-use App\Models\Webhook;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 
-class GithubService
+/**
+ * Class for working with webhooks in GitHub repositories
+ */
+class WebhooksService extends GithubService
 {
-    protected Http $http;
-    private string $token;
-    private string $version = '2022-11-28';
-    private string $redirectUrl;
-    protected const API_URL = 'https://api.github.com';
-
-    public function __construct(Http $http)
-    {
-        $this->http = $http;
-        $this->token = env('GITHUB_TOKEN');
-        $this->redirectUrl = env('GITHUB_REDIRECT_URL');
-    }
-
-    protected function setHeaders(): array
-    {
-        return [
-            'Accept' => 'application/vnd.github+json',
-            'Authorization' => "Bearer $this->token",
-            'X-GitHub-Api-Version' => $this->version,
-        ];
-    }
-
-    protected function getUser(): array
-    {
-        return $this->http::withHeaders($this->setHeaders())->get(self::API_URL . '/user')->json();
-    }
-
-    public function setWebhook(string $repository, array $hooks): array
+    public function set(string $repository, array $hooks): array
     {
         $user = $this->getUser();
-
         $response = Http::withHeaders($this->setHeaders())
             ->post((self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks'), [
                 'name' => 'web',
@@ -54,7 +27,7 @@ class GithubService
                 ],
             ]);
 
-        if ($response->status() === Response::HTTP_NOT_FOUND) {
+        if ($response->status() === 404) {
             return [
                 'message' => 'Github repository is not found',
                 'code' => Response::HTTP_NOT_FOUND
@@ -75,15 +48,6 @@ class GithubService
             ];
         }
 
-        $repoQuery = Repository::query()->where('name', $repository)->first();
-
-
-        Webhook::query()->create([
-            'name' => 'push',
-            'hook_id' => $response->json()['id'],
-            'repository_id' => $repoQuery->id,
-        ]);
-
         return [
             'message' => 'Webhook successfully registered',
             'repository' => $repository,
@@ -92,12 +56,11 @@ class GithubService
         ];
     }
 
-    public function getRepositoryHooks(string $repository): array
+    public function get(string $repository): array
     {
         $user = $this->getUser();
         $response = $this->http::withHeaders($this->setHeaders())
             ->get(self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks');
-
 
         if ($response->status() === 404) {
             return [
@@ -108,8 +71,8 @@ class GithubService
 
         if (empty($response->json())) {
             return [
-                'message' => 'Hooks not found',
-                'code' => Response::HTTP_OK
+                'message' => 'Registered hooks on repository not found',
+                'code' => Response::HTTP_NOT_FOUND
             ];
         }
 
@@ -119,4 +82,28 @@ class GithubService
             'code' => Response::HTTP_OK
         ];
     }
+
+    public function delete(int $hookId, string $repository): array
+    {
+        $user = $this->getUser();
+        $response = $this->http::withHeaders($this->setHeaders())
+            ->delete(self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks/' . $hookId);
+
+        if ($response->status() === 404) {
+            return [
+                'message' => 'Hook in repository not found',
+                'repository' => $repository,
+                'hookId' => $hookId,
+                'code' => Response::HTTP_NOT_FOUND
+            ];
+        }
+
+        return [
+            'message' => 'Hook successfully deleted',
+            'repository' => $repository,
+            'hookId' => $hookId,
+            'code' => Response::HTTP_OK
+        ];
+    }
+
 }

@@ -23,7 +23,7 @@ nginx-logs:
 nginx-logs-f:
 	docker compose logs --follow php-gitbot
 vendor:
-	docker compose exec php-l2gitbot bash -c "composer install"
+	docker compose exec php-gitbot bash -c "composer install"
 install: up vendor
 	@cp .env.example .env && \
 	docker compose exec php-gitbot bash -c "php artisan key:generate"
