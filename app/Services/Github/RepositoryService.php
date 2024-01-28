@@ -20,13 +20,13 @@ class RepositoryService extends GithubService
 
         $repoDbExists = $this->getFromDb($repository);
 
-        if ($repoDbExists['code'] === Response::HTTP_OK) {
-            return [
-                'message' => 'Repository already exists in system',
-                'data' => $repoDbExists['data'],
-                'code' => Response::HTTP_UNPROCESSABLE_ENTITY
-            ];
-        }
+//        if ($repoDbExists['code'] === Response::HTTP_OK) {
+//            return [
+//                'message' => 'Repository already exists in system',
+//                'data' => $repoDbExists['data'],
+//                'code' => Response::HTTP_UNPROCESSABLE_ENTITY
+//            ];
+//        }
 
         $user = $this->getUser();
         $reposData = Repository::query()->create([
