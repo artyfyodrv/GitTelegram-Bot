@@ -29,7 +29,7 @@ class AddRepositoryRequest extends FormRequest
         ];
     }
 
-    public function messages()
+    public function messages(): array
     {
         return [
             'repository.required' => 'The field cannot be empty',
