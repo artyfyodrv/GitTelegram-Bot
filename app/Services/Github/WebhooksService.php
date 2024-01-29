@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Github;
 
+use App\Models\Webhook;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -12,8 +13,21 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class WebhooksService extends GithubService
 {
+
     public function set(string $repository, array $hooks): array
     {
+        $repositoryService = new RepositoryService($this->http);
+        $repoDb = $repositoryService->getFromDb($repository);
+
+
+        if ($repoDb['code'] !== Response::HTTP_OK) {
+            return $repoDb;
+        }
+
+        if ($repositoryService->getFromGit($repository)['code'] !== Response::HTTP_OK) {
+            return $repositoryService->getFromGit($repository);
+        }
+
         $user = $this->getUser();
         $response = Http::withHeaders($this->setHeaders())
             ->post((self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks'), [
@@ -48,6 +62,16 @@ class WebhooksService extends GithubService
             ];
         }
 
+        $hookId = $response->json()['id'];
+
+        foreach ($hooks as $hook) {
+            Webhook::query()->create([
+                'name' => $hook,
+                'repository_id' => $repoDb['data']['id'],
+                'hook_git_id' => $hookId,
+            ]);
+        }
+
         return [
             'message' => 'Webhook successfully registered',
             'repository' => $repository,
@@ -78,7 +102,7 @@ class WebhooksService extends GithubService
 
         return [
             'repository' => $repository,
-            'hooks' => $response[0]['events'],
+            'hooks' => $result ?? $response[0]['events'],
             'code' => Response::HTTP_OK
         ];
     }

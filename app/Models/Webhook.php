@@ -12,7 +12,7 @@ class Webhook extends Model
 
     protected $fillable = [
         'name',
-        'hook_id',
+        'hook_git_id',
         'repository_id'
     ];
 
