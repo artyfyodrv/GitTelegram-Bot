@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Github;
 
+use App\Models\Webhook;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -12,8 +13,21 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class WebhooksService extends GithubService
 {
+
     public function set(string $repository, array $hooks): array
     {
+        $repositoryService = new RepositoryService($this->http);
+        $repoDb = $repositoryService->getFromDb($repository);
+
+
+        if ($repoDb['code'] !== Response::HTTP_OK) {
+            return $repoDb;
+        }
+
+        if ($repositoryService->getFromGit($repository)['code'] !== Response::HTTP_OK) {
+            return $repositoryService->getFromGit($repository);
+        }
+
         $user = $this->getUser();
         $response = Http::withHeaders($this->setHeaders())
             ->post((self::API_URL . '/repos/' . $user['login'] . '/' . $repository . '/hooks'), [
@@ -36,7 +50,7 @@ class WebhooksService extends GithubService
 
         if ($response->status() === Response::HTTP_UNPROCESSABLE_ENTITY) {
             return [
-                'message' => 'Webhook is registered already',
+                'message' => $response->json()['errors']['0']['message'],
                 'code' => Response::HTTP_UNPROCESSABLE_ENTITY
             ];
         }
@@ -46,6 +60,16 @@ class WebhooksService extends GithubService
                 'message' => 'Forbidden',
                 'code' => Response::HTTP_FORBIDDEN
             ];
+        }
+
+        $hookId = $response->json()['id'];
+
+        foreach ($hooks as $hook) {
+            Webhook::query()->create([
+                'name' => $hook,
+                'repository_id' => $repoDb['data']['id'],
+                'hook_git_id' => $hookId,
+            ]);
         }
 
         return [
@@ -76,9 +100,17 @@ class WebhooksService extends GithubService
             ];
         }
 
+        $data = $response->json();
+        $result = [];
+
+        for ($i = 0; count($data) > $i; $i++) {
+            $result[$i]['hook_id'] = $data[$i]['id'];
+            $result[$i]['hook'] = $data[$i]['events'];
+        }
+
         return [
             'repository' => $repository,
-            'hooks' => $response[0]['events'],
+            'hooks' => $result,
             'code' => Response::HTTP_OK
         ];
     }
