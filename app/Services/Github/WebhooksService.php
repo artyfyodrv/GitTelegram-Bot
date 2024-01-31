@@ -50,7 +50,7 @@ class WebhooksService extends GithubService
 
         if ($response->status() === Response::HTTP_UNPROCESSABLE_ENTITY) {
             return [
-                'message' => 'Webhook is registered already',
+                'message' => $response->json()['errors']['0']['message'],
                 'code' => Response::HTTP_UNPROCESSABLE_ENTITY
             ];
         }
@@ -100,9 +100,17 @@ class WebhooksService extends GithubService
             ];
         }
 
+        $data = $response->json();
+        $result = [];
+
+        for ($i = 0; count($data) > $i; $i++) {
+            $result[$i]['hook_id'] = $data[$i]['id'];
+            $result[$i]['hook'] = $data[$i]['events'];
+        }
+
         return [
             'repository' => $repository,
-            'hooks' => $result ?? $response[0]['events'],
+            'hooks' => $result,
             'code' => Response::HTTP_OK
         ];
     }
